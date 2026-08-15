@@ -1,0 +1,21 @@
+{
+  "$schema": "https://moddbcdn.vintagestory.at/schema/modinfo.latest.json",
+  "type": "Code",
+  "modid": "libguitoolsmithsharpness",
+  "name": "LibGUI Toolsmith Sharpness",
+  "authors": [
+    "Nick"
+  ],
+  "description": "Adds a blue sharpness bar (from the Toolsmith mod) above the durability bar on LibGUI item slots - both the HudUI hotbar and the PlayerInvUI inventory.",
+  "version": "1.0.0",
+  "side": "Client",
+  "requiredOnClient": true,
+  "requiredOnServer": false,
+  "dependencies": {
+    "game": "1.22.0",
+    "gui": "3.0.0",
+    "hudui": "1.3.0",
+    "playerinvui": "1.2.0",
+    "toolsmith": "1.2.18"
+  }
+}

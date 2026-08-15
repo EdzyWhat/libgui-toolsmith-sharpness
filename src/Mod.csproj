@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    LibGUI Toolsmith Sharpness: a small client-side compatibility patch mod. It draws a
+    blue "sharpness" bar (from the Toolsmith mod's per-tool sharpness stat) just above the
+    green durability bar on every LibGUI item slot - which covers HudUI's hotbar and
+    PlayerInvUI's inventory in a single Harmony patch, because both render their slots
+    through LibGUI's Gui.Widgets.Inventory.ItemSlotOverlay.
+
+    Compile-time references are only: the game (VintagestoryAPI/Lib), Harmony + OpenTK
+    (shipped under the install's Lib/), and Gui.dll (vendored under ../lib, provided at
+    runtime by the installed `gui` mod). We reference NO HudUI/PlayerInvUI/Toolsmith types:
+    the patch targets LibGUI's shared overlay, and reads Toolsmith's sharpness straight off
+    the itemstack's tree attributes. All game/lib references are Private=false so their DLLs
+    are never copied into our output (the game and the installed mods provide them).
+  -->
+
+  <PropertyGroup>
+    <AssemblyName>LibGuiToolsmithSharpness</AssemblyName>
+    <RootNamespace>LibGuiToolsmithSharpness</RootNamespace>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+    <!-- Assets/modinfo are packaged by build/restage.sh, not copied by the build. -->
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="VintagestoryAPI">
+      <HintPath>$(VintageStoryPath)/VintagestoryAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VintagestoryLib">
+      <HintPath>$(VintageStoryPath)/VintagestoryLib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Harmony: shipped with the game under Lib/ (id "0Harmony"). Private=false. -->
+    <Reference Include="0Harmony">
+      <HintPath>$(VintageStoryPath)/Lib/0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- OpenTK.Mathematics: LibGUI's Vector4 / EdgeInsets colours come from here. Shipped
+         under Lib/. Private=false. -->
+    <Reference Include="OpenTK.Mathematics">
+      <HintPath>$(VintageStoryPath)/Lib/OpenTK.Mathematics.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- LibGUI (modid `gui`): the widget framework we patch and build widgets against.
+         Vendored under ../lib (see lib/README.md). Private=false: the installed `gui` mod
+         provides Gui.dll at runtime; we must never ship our own copy. -->
+    <Reference Include="Gui">
+      <HintPath>..\lib\Gui.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

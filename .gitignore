@@ -1,0 +1,20 @@
+# .NET build output
+bin/
+obj/
+[Rr]elease/
+[Rr]eleases/
+*.user
+*.suo
+
+# IDEs
+.vs/
+.idea/
+.vscode/
+*.DS_Store
+
+# Claude Code local worktrees / machine-local settings
+.claude/worktrees/
+.claude/settings.local.json
+
+# Vintage Story runtime data (never commit game data or the game itself)
+VintagestoryData/
