@@ -6,7 +6,7 @@
   "authors": [
     "Nick"
   ],
-  "description": "Adds a blue sharpness bar (from the Toolsmith mod) above the durability bar on LibGUI item slots - both the HudUI hotbar and the PlayerInvUI inventory.",
+  "description": "Shows the Toolsmith sharpness stat as a bar above the durability bar on LibGUI item slots (HudUI hotbar + PlayerInvUI inventory), coloured to match your Toolsmith display mode, and fixes the durability bar to show a tinkered tool's weakest component.",
   "version": "1.0.0",
   "side": "Client",
   "requiredOnClient": true,

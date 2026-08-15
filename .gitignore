@@ -18,3 +18,7 @@ obj/
 
 # Vintage Story runtime data (never commit game data or the game itself)
 VintagestoryData/
+
+# Vendored reference DLLs - other mods' compiled assemblies, not ours to redistribute.
+# Kept locally for compile-time reference only; obtain per lib/README.md.
+lib/*.dll

@@ -1,17 +1,39 @@
 # LibGUI Toolsmith Sharpness
 
-Client-side Vintage Story 1.22.x mod (targets .NET 10). A compatibility patch: draws a blue
-"sharpness" bar (from the Toolsmith mod's per-tool stat) above the durability bar on LibGUI
-item slots, covering both the HudUI hotbar and the PlayerInvUI inventory via one Harmony patch.
-See `README.md` for the full picture.
+Client-side Vintage Story 1.22.x mod (targets .NET 10). A Toolsmith<->LibGUI compatibility patch
+that does two things on LibGUI item slots (HudUI hotbar + PlayerInvUI inventory) via ONE Harmony
+patch: (1) draws a "sharpness" bar above the durability bar (coloured to match the player's Toolsmith
+mode, with a fresh-tool "sharpen me" nudge and a legible dull-state treatment), and (2) fixes the durability
+bar for tinkered tools to show the weakest component (closest to breaking) instead of just the
+tool head. See `README.md` for the full picture.
 
 ## Architecture (one project)
 
 - `src/SharpnessReader.cs` — reads Toolsmith's `toolSharpnessCurrent` / `toolSharpnessMax` raw
   stack attributes. NO Toolsmith.dll reference; NEVER call Toolsmith's `Get*Sharpness()`
   extensions (they lazily initialise sharpness as a side effect - forbidden in a render path).
-- `src/SharpnessBar.cs` — a `StatelessWidget` mirroring LibGUI's `DurabilityBar` geometry.
-- `src/ItemSlotSharpnessPatch.cs` — Harmony postfix on `Gui.Widgets.Inventory.ItemSlotOverlay.Build`.
+- `src/DurabilityReader.cs` — computes the weakest-component durability ratio for tinkered tools,
+  mirroring Toolsmith's `FindLowestCurrent/MaxDurabilityForBar` (min current & min max across
+  head/handle/binding, taken independently). Reads raw `tinkeredTool*Durability` attributes and
+  only the two vanilla collectible calls LibGUI already makes on the same stack (`GetMaxDurability`
+  / `GetRemainingDurability` for the head) — no side effects, no Toolsmith.dll. NEVER call
+  Toolsmith's `Get*Durability()` extensions (several lazily reset/repair attributes).
+- `src/SharpnessBar.cs` — a `StatelessWidget` mirroring LibGUI's `DurabilityBar` geometry. Colours
+  the fill to match the player's Toolsmith mode (flat bands / gradient / 5 sections), keeps a faint
+  themed track outline for legibility at near-zero sharpness (escalating to `ColorScheme.Error` when
+  critically dull), and hosts the fresh-tool hint. Only drawn when sharpness < max (Toolsmith's own
+  "no bar when keen" convention), so a missing bar means fully sharp.
+- `src/SharpnessPalette.cs` — Toolsmith's exact sharpness colour maths (hex palettes copied verbatim,
+  fed through VS `ColorUtil.Hex2Int`/`ColorOverlay`/`ToRGBAFloats`). No Toolsmith.dll reference.
+- `src/ToolsmithSharpnessConfig.cs` — reflects the player's live Toolsmith display config
+  (`ToolsmithModSystem.ClientConfig.UseGradientForSharpnessInstead` / `ShowAllSharpnessBarSections`
+  + `GradientSelection`) to pick the render mode. Fails soft to Toolsmith's defaults (flat bands).
+- `src/SharpnessGhostPulse.cs` — a `StatefulWidget` that draws the "sharpen me" hint on a
+  freshly-crafted tool: a faint `ColorScheme.Primary` bar in the unsharp negative space, breathing
+  ~1.8s then resting ~3s (via an `AnimationController` looped on `Completed`, ticker from
+  `context.GetTickerProvider()`). Fresh = sharpness < max AND durability pristine; self-clears on use.
+- `src/ItemSlotSharpnessPatch.cs` — Harmony postfix on `Gui.Widgets.Inventory.ItemSlotOverlay.Build`;
+  swaps the head-only durability bar for a weakest-component one AND appends the sharpness bar.
 - `src/SharpnessBarsModSystem.cs` — client-only entry point; `PatchAll` / `UnpatchAll`.
 
 ## Guardrails
