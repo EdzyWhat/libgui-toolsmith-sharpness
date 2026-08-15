@@ -14,8 +14,6 @@
   "dependencies": {
     "game": "1.22.0",
     "gui": "3.0.0",
-    "hudui": "1.3.0",
-    "playerinvui": "1.2.0",
     "toolsmith": "1.2.18"
   }
 }

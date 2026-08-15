@@ -22,15 +22,28 @@ sharpness bar appear **everywhere**: the HudUI hotbar *and* the PlayerInvUI inve
   `ItemSlotOverlayStack` with one extra bottom-aligned bar, lifted a few pixels above the
   durability bar. Non-Toolsmith items are left untouched.
 
-## Dependencies (all required)
+## Dependencies
+
+**Required** (declared in `modinfo.json`):
 
 | Mod | Min version | Why |
 |-----|-------------|-----|
 | Vintage Story | 1.22.0 | Base game |
-| `gui` (LibGUI) | 3.0.0 | The widget framework this mod patches / builds against |
-| `hudui` | 1.3.0 | Hotbar UI (a slot surface) |
-| `playerinvui` | 1.2.0 | Inventory UI (a slot surface) |
+| `gui` (LibGUI) | 3.0.0 | The widget framework this mod patches / builds against (its types are loaded at startup) |
 | `toolsmith` | 1.2.18 | Source of the sharpness stat |
+
+**Optional** (not declared — the bar appears on whichever slot UIs are installed):
+
+| Mod | Why optional |
+|-----|--------------|
+| `hudui` | Renders the hotbar via LibGUI slots. Present → bar shows on the hotbar. |
+| `playerinvui` | Renders the inventory via LibGUI slots. Present → bar shows in the inventory. |
+
+The patch targets LibGUI's shared `ItemSlotOverlay`, which **vanilla never uses** (vanilla slots
+are Cairo-drawn), so with neither UI mod installed the patch is simply dormant and never touches
+vanilla rendering. Vintage Story's `modinfo` has no "optional dependency" flag, so optional deps
+are handled by *not* listing them; no code guard is needed here because the patch is inert
+without a LibGUI slot surface.
 
 ## Build & playtest
 
