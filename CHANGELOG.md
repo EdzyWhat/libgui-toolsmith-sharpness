@@ -4,27 +4,16 @@ All notable changes to this mod are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0]
 
-Cleanup / hand-off pass — no player-facing behaviour change.
+Maintenance release — no player-facing behaviour change.
 
 ### Changed
-- Reorganised the source into two layers — `src/Compat/` (the LibGUI bridge) and `src/Toolsmith/`
-  (read-only shims over Toolsmith's data/config) — with a one-directional `Compat` → `Toolsmith`
-  dependency that mirrors the fold-into-Toolsmith boundary.
-
-### Removed
-- Dropped the experimental liquid-metal ("keen") effect (`SharpnessKeenLiquid`, `LiquidMetalGradient`)
-  and its SkSL runtime shader, along with the `SkiaSharp` compile-time reference. The fully-sharp state
-  now always uses the lightweight, shader-free `SharpnessKeenSweep` gleam.
+- The fully-sharp ("keen") bar now consistently uses the lightweight sweep gleam. An experimental
+  shader-based effect was removed (it was already dormant — the sweep was always the default).
 
 ### Added
-- `LICENSE` (MIT), `CONTRIBUTING.md`, `INTEGRATION.md` (guide to folding this mod into Toolsmith),
-  `CHANGELOG.md`, and GitHub issue/PR templates.
-
-### Docs
-- Rewrote `README.md` around the one-patch, dependency-agnostic design; corrected stale claims (the bar
-  is now always visible with a distinct "keen" state at 100%, not hidden) and the "scaffolded" status.
+- Source code is now public and documented. CC0 license.
 
 ## [1.0.1]
 
