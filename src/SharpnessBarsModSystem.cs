@@ -27,7 +27,7 @@ public class SharpnessBarsModSystem : ModSystem
         // [FOLD-IN] Inside Toolsmith this gate is ESSENTIAL: Toolsmith must NOT hard-depend on `gui`, so
         // only ever touch the LibGUI patch (and thus resolve any Gui.* types) when LibGUI is installed.
         // In this standalone mod `gui` is a hard dependency, so the gate is redundant but harmless.
-        // See INTEGRATION.md (Layer 2).
+        // See HANDOFF.md (fold-in roadmap, Step 2).
         if (!api.ModLoader.IsModEnabled("gui"))
         {
             Logger.Notification("[libguitoolsmithsharpness] LibGUI (gui) not enabled; skipping patch.");
