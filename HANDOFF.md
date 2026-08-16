@@ -8,7 +8,9 @@ That said, either path works. This doc covers both.
 
 ## What this does
 
-Sharpness bar + weakest-component durability fix, on every LibGUI slot. One Harmony postfix on `ItemSlotOverlay.Build` — the single method HudUI and PlayerInvUI both route their slots through — covers both UIs without touching either of them directly.
+Sharpness bar + weakest-component durability fix, on every LibGUI slot. One Harmony **postfix** on `ItemSlotOverlay.Build` — the single method HudUI and PlayerInvUI both route their slots through — covers both UIs without touching either of them directly.
+
+Worth flagging: it's a postfix, not a transpiler. We let Build run normally, then modify the returned widget tree. No IL surgery, no instruction-sequence pattern matching — which means a LibGUI refactor that keeps the return type intact won't silently break anything.
 
 ---
 
@@ -61,12 +63,19 @@ harmony.PatchCategory("toolsmith.libgui.compat");
 
 Don't add `gui` to your `modinfo.json` dependencies — compile-time reference only (`Private=false`, same as we do in `src/Mod.csproj`).
 
+### One design call to make: always-on vs hide-when-keen
+
+We show the sharpness bar at 100% — Toolsmith hides it. You noted that hiding it mirrors vanilla durability behaviour, and that's a fair default. Our reasoning was that when scanning a row of freshly-forged tools, an absent bar is ambiguous (sharp? untracked?), so we wanted the bar to always mean something: sweep = done, fill = in progress, ghost = free hone. But it's a genuine preference, not an obvious right answer.
+
+If you fold this in and want to give players the choice, a `ShowSharpnessBarWhenKeen` boolean in `ToolsmithClientConfigs` sits naturally next to `UseGradientForSharpnessInstead`. The check in `SharpnessBar.Build` is one `if`.
+
 ### The checklist
 
 - [ ] Copy `src/Compat/` into `Toolsmith/Client/LibGui/`
 - [ ] Replace `src/Toolsmith/` shim calls with direct Toolsmith API calls (table above)
 - [ ] Add a `gui`-gated code path that calls `harmony.PatchCategory("toolsmith.libgui.compat")`
 - [ ] Add compile-time `Gui.dll` reference (`Private=false`)
+- [ ] Decide always-on vs hide-when-keen (see above); add config toggle if wanted
 - [ ] Confirm Toolsmith loads and behaves normally with **no** LibGUI installed
 - [ ] Confirm bars appear on HudUI hotbar and PlayerInvUI grids with LibGUI installed
 
@@ -101,3 +110,5 @@ You'll notice the `Toolsmith/` shim layer is documented pretty heavily — all t
 ---
 
 *This is CC0 — do whatever you want with it.*
+
+*You mentioned the Toolsmith Discord thread — I'll find you there.*
