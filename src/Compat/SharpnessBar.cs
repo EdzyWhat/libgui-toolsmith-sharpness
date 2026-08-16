@@ -11,30 +11,14 @@ using OpenTK.Mathematics;
 namespace LibGuiToolsmithSharpness.Compat;
 
 /// <summary>
-/// A Toolsmith "sharpness" bar for a LibGUI item slot, mirroring the geometry of LibGUI's own
-/// <c>Gui.Widgets.Inventory.DurabilityBar</c> (3px tall dark track + a ratio-driven fill, same
-/// <c>(SlotSize - 8) * ratio</c> width) so the two read as a matched pair when stacked.
+/// Sharpness bar for a LibGUI item slot. Mirrors LibGUI's DurabilityBar geometry (3px track +
+/// ratio fill, same (SlotSize - 8) * ratio width) so the two read as a pair. Fill colour matches
+/// the player's Toolsmith display mode via <see cref="SharpnessPalette"/>.
 ///
-/// The fill is coloured to match whatever mode the player has Toolsmith set to
-/// (<see cref="ToolsmithSharpnessConfig"/> / <see cref="SharpnessPalette"/>) - flat bands, a gradient
-/// ramp, or five flat sections - so this bar looks like Toolsmith's own, just relocated onto the
-/// LibGUI slot. Two extra affordances layer on top of that:
-///
-/// <list type="bullet">
-///   <item><b>Always-legible track.</b> The dark track keeps a faint themed outline so the bar's full
-///     extent (and therefore an empty/near-empty sharpness) is readable; the outline escalates to the
-///     theme's <c>Error</c> colour when the tool is critically dull.</item>
-///   <item><b>Fresh-tool hint.</b> When <see cref="IsFresh"/> (a just-crafted tool that can still be
-///     sharpened for free), a faint breathing <see cref="SharpnessGhostPulse"/> fills the negative
-///     space to nudge the player to sharpen before first use.</item>
-///   <item><b>Keen state.</b> At full sharpness (ratio >= 1) we render a solid bar in the palette's
-///     top colour with a periodic sweeping gleam (<see cref="SharpnessKeenSweep"/>) - a positive
-///     "this edge is keen" signal, rather than standalone Toolsmith's blank/hidden bar.</item>
-/// </list>
-///
-/// Unlike standalone Toolsmith (which hides the bar at 100%), we keep the bar visible for every
-/// Toolsmith tool: a blank slot reads as "no info", so the always-present bar - graded fill when
-/// dulling, gleaming keen state when sharp - means the player never has to hover just to check.
+/// Always visible, even at 100%. Toolsmith hides the bar when keen, but on a LibGUI slot a missing
+/// bar is ambiguous — sharp, or just untracked? When you're doing a batch forging pass and scanning
+/// across a row of tools, you need the bar to mean something reliable: sweep = done, fill = in
+/// progress, ghost pulse = free hone still available. An absent bar breaks that scan.
 /// </summary>
 public class SharpnessBar : StatelessWidget
 {
@@ -76,8 +60,8 @@ public class SharpnessBar : StatelessWidget
 
         float innerWidth = SlotSize - 8f;
 
-        // Fully sharp: a solid keen bar with a periodic gleam, instead of the old "no bar" (which read
-        // as "no info"). Always present so the player never has to hover just to confirm the edge holds.
+        // Keen: bar stays visible at 100% as a positive "done, move on" confirmation rather than
+        // disappearing. In a batch forging pass, the sweep means this tool is finished.
         if (Ratio >= 1f)
         {
             return BuildKeen(scheme, innerWidth);
@@ -89,9 +73,11 @@ public class SharpnessBar : StatelessWidget
 
         var layers = new List<Widget>(3);
 
-        // 1. Track - EXPLICIT full width (a width-less Container collapses to 0 in a Stack, which also
-        //    made the bar shrink to the fill width and appear centred). A faint themed outline keeps
-        //    the bar's extent legible even when empty, escalating to Error when critically dull.
+        // 1. Track — must be explicit full width, or a zero-fill Stack collapses it to nothing and the
+        //    bar visually disappears when blunt (which is exactly when you most need to see it). The
+        //    outline makes "fully blunt" a visible, deliberate state rather than an absent one —
+        //    sharpening a blunt tool costs significant head durability, so the player should be choosing
+        //    it consciously, not discovering it by accident. Escalates to Error when critically dull.
         Vector4 outline = dull ? scheme.Error : WithAlpha(scheme.OutlineVariant, 0.9f);
         layers.Add(new Container(new BoxStyle
         {
@@ -103,8 +89,8 @@ public class SharpnessBar : StatelessWidget
             BorderColor = outline
         }));
 
-        // 2. Fresh-tool hint, under the fill so it only shows in the unsharp negative space. Full
-        //    width so it fills the whole bar; the opaque fill on top masks the sharpened portion.
+        // 2. Fresh-tool hint — under the fill so it only shows in the unsharp negative space.
+        //    Full width; the opaque fill on top masks the already-sharpened portion.
         if (IsFresh)
         {
             layers.Add(new SharpnessGhostPulse(innerWidth));

@@ -8,12 +8,11 @@ using OpenTK.Mathematics;
 namespace LibGuiToolsmithSharpness.Compat;
 
 /// <summary>
-/// The fully-sharp ("keen") indicator: a solid full-width bar in the palette top colour with a soft
-/// highlight that sweeps left-to-right inside the bar (a single <see cref="Container"/> whose
-/// <see cref="LinearGradient"/> stop positions shift each frame), then rests. A calm shimmer on the
-/// player's sharpness colour that positively signals "this edge is keen", instead of standalone
-/// Toolsmith's blank/hidden bar. Cheap and dependency-free - a plain animated gradient, no runtime
-/// shader - so it stays light on the render path.
+/// The fully-sharp ("keen") indicator: a solid bar in the palette top colour with a soft highlight
+/// that glides left-to-right, then loops. The pace is deliberately slow and settled — this is the
+/// "done, move on" signal in a batch forging pass, so it shouldn't feel active or demanding. It just
+/// needs to read as a positive resting state, distinct from an empty or filling bar.
+/// Plain animated gradient, no shader.
 /// </summary>
 public class SharpnessKeenSweep : StatefulWidget
 {
@@ -38,13 +37,12 @@ public class SharpnessKeenSweep : StatefulWidget
 
 internal sealed class SharpnessKeenSweepState : State<SharpnessKeenSweep>
 {
-    // Slow, calm glide: a 3000ms sweep filling the entire 3000ms cycle, so the gleam glides
-    // continuously across the bar with no rest gap (SweepFraction 1.0 -> the rest branch never fires).
+    // 3s continuous glide, no rest gap. Slow enough to read as "settled" rather than animated.
     private static readonly TimeSpan CycleDuration = TimeSpan.FromMilliseconds(3000);
-    private const double SweepFraction = 3000.0 / 3000.0;
+    private const double SweepFraction = 3000.0 / 3000.0; // 1.0 = rest branch never fires
 
-    private const float BandHalf = 0.16f; // half-width of the bright band in gradient-position units
-    private const float GleamLift = 0.65f; // how far the band is lifted toward white
+    private const float BandHalf = 0.16f;  // half-width of the bright band in gradient-position space
+    private const float GleamLift = 0.65f; // how far the band lightens toward white
 
     private AnimationController? _controller;
 

@@ -9,37 +9,20 @@ using LibGuiToolsmithSharpness.Toolsmith;
 namespace LibGuiToolsmithSharpness.Compat;
 
 /// <summary>
-/// Postfix on LibGUI's <see cref="ItemSlotOverlay.Build"/>. That single method builds the
-/// overlay (including the durability bar) for EVERY LibGUI item slot, so patching it here
-/// covers HudUI's hotbar and PlayerInvUI's inventory/creative/crafting grids at once - all of
-/// them render their slots via <c>Gui.Widgets.Inventory.FlatItemSlot</c> -> <c>ItemSlotOverlay</c>.
+/// Postfix on LibGUI's ItemSlotOverlay.Build — the single method every LibGUI slot UI calls, so one
+/// patch covers HudUI's hotbar and PlayerInvUI's grids. For a Toolsmith tool: swaps the durability
+/// bar for a weakest-component one and appends the sharpness bar above it.
 ///
-/// The overlay's <c>Build</c> returns an <see cref="ItemSlotOverlayStack"/> - a flat
-/// <see cref="Stack"/> of positioned children (item, count text, durability bar, ...). For a
-/// Toolsmith tool we do two things in one rebuild of that stack:
-///
-/// 1. <b>Fix the durability bar.</b> LibGUI draws <c>GetRemainingDurability / GetMaxDurability</c>,
-///    which for a tinkered tool is only the HEAD - so a near-full head hides a nearly-snapped
-///    binding. We drop LibGUI's head bar and re-add one driven by the weakest component
-///    (<see cref="DurabilityReader"/>), matching what standalone Toolsmith shows (and letting
-///    LibGUI's <see cref="DurabilityBar"/> ramp colour it red as it nears zero).
-/// 2. <b>Add the sharpness bar.</b> A <see cref="SharpnessBar"/> aligned bottom-centre like the
-///    durability bar but lifted a few pixels so it sits just above it.
-///
-/// We preserve the exact <see cref="ItemSlotOverlayStack"/> type, key and metadata
-/// (ItemStack / SlotSize) - and reuse LibGUI's own <see cref="ItemSlotOverlay.DurabilityBarKey"/>
-/// for the replacement bar - so the framework's reconciliation stays stable frame to frame.
+/// Must rebuild as ItemSlotOverlayStack (not a plain Stack) with the same ItemStack/SlotSize, and
+/// reuse DurabilityBarKey for the replacement bar, so LibGUI's reconciliation stays stable per frame.
 /// </summary>
-// If this patch moves into Toolsmith, register it as its own category and apply it only from
-// inside the gui-gated ModSystem — not from Toolsmith's main PatchAll pass. See HANDOFF.md.
+// When folding into Toolsmith: apply only from a gui-gated code path, not from Toolsmith's main
+// PatchAll. The [HarmonyPatchCategory] is already set for that — see HANDOFF.md.
 [HarmonyPatchCategory("toolsmith.libgui.compat")]
 [HarmonyPatch(typeof(ItemSlotOverlay), "Build")]
 public static class ItemSlotSharpnessPatch
 {
-    // A stable key for our injected sharpness bar, distinct from ItemSlotOverlay.DurabilityBarKey,
-    // so it reconciles by identity among the stack's siblings.
-    // Fully-qualified: LibGUI's input `Key` (keyboard) shadows the widget-tree
-    // `Gui.Widgets.Framework.Key` when both namespaces are in scope.
+    // Fully-qualified because LibGUI's input Key shadows Gui.Widgets.Framework.Key when both are in scope.
     private static readonly Gui.Widgets.Framework.Key SharpnessBarKey =
         new ValueKey<string>("libguitoolsmithsharpness.sharpness_bar");
 
@@ -57,9 +40,9 @@ public static class ItemSlotSharpnessPatch
         bool hasSharpness = SharpnessReader.TryGetRatio(itemStack, out float sharpnessRatio, out bool sharpnessUninitialized);
         bool isTinkered = DurabilityReader.TryGetLowestRatio(itemStack, out float durabilityRatio, out bool showDurability, out bool allComponentsFull);
 
-        // We draw the sharpness bar for ANY Toolsmith sharpenable, including fully keen (ratio == 1).
-        // Standalone Toolsmith hides the bar at 100%, but a missing bar reads as "no info" rather than
-        // "sharp" - so we keep it visible and let SharpnessBar render a distinct gleaming keen state.
+        // Show the bar even at ratio == 1. Toolsmith hides it when keen, but on a LibGUI slot a missing
+        // bar is ambiguous — is it sharp, or just untracked? When scanning across a batch of tools, you
+        // need the bar to always mean something: sweep = done, fill = in progress, ghost = free hone.
         bool showSharpness = hasSharpness;
 
         if (!showSharpness && !isTinkered)

@@ -1,5 +1,7 @@
 # LibGUI Toolsmith Sharpness
 
+> **Toolsmith author (JonR):** [`HANDOFF.md`](HANDOFF.md) is written for you.
+
 You installed [Toolsmith](https://mods.vintagestory.at/toolsmith). You installed [HudUI](https://mods.vintagestory.at/hudui) or [PlayerInvUI](https://mods.vintagestory.at/playerinvui). The sharpness bar vanished. This mod puts it back.
 
 It does two things on every [LibGUI](https://mods.vintagestory.at/libgui) item slot:

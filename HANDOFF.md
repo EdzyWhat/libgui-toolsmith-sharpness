@@ -1,19 +1,14 @@
 # Hey JonR
 
-So, you found this. This is a compatibility patch that makes LibGUI item slots show Toolsmith's sharpness bar and fixes the multi-part durability bar. You offered to either support it or pull it in — this doc is meant to make that decision easy.
+So, you found this. Our preference is to **fold it into Toolsmith** if you're open to it — and it's less work than it looks. About half the code here is a workaround for not having access to Toolsmith internals, and it just deletes itself the moment it moves inside. The actual LibGUI bridge is net new code, not a rewrite of anything you have.
 
-Short version: **folding it in is probably the better call**, and it's less work than it looks. About half the code here exists only because this is an *outside* mod and deletes itself the moment it moves inside Toolsmith.
+That said, either path works. This doc covers both.
 
 ---
 
 ## What this does
 
-Two things, on every LibGUI slot (HudUI hotbar + PlayerInvUI inventory/grids):
-
-1. Draws the sharpness bar above the durability bar, coloured to match whatever display mode the player has set in Toolsmith.
-2. Shows the weakest-component durability for tinkered tools instead of just the head — mirrors exactly what `TinkeringUtility.FindLowest*` does.
-
-It hooks into LibGUI's `ItemSlotOverlay.Build` (one Harmony postfix), which is the single method every LibGUI slot UI calls. Patch that one spot and HudUI + PlayerInvUI are both covered without touching either of them.
+Sharpness bar + weakest-component durability fix, on every LibGUI slot. One Harmony postfix on `ItemSlotOverlay.Build` — the single method HudUI and PlayerInvUI both route their slots through — covers both UIs without touching either of them directly.
 
 ---
 

@@ -4,22 +4,9 @@ using System.Reflection;
 namespace LibGuiToolsmithSharpness.Toolsmith;
 
 /// <summary>
-/// Reads the player's Toolsmith sharpness-bar *display* preferences so our LibGUI bar colours the
-/// fill exactly the way standalone Toolsmith would. Toolsmith draws the bar in one of three modes,
-/// chosen by two client-config booleans plus an int gradient selector:
-///
-/// <list type="bullet">
-///   <item><b>Gradient</b> - <c>UseGradientForSharpnessInstead</c>: a smooth ramp built from one of
-///     three palettes (<c>GradientSelection</c> 0/1/2).</item>
-///   <item><b>All sections</b> - <c>ShowAllSharpnessBarSections</c>: five flat colour segments.</item>
-///   <item><b>Flat band</b> (default) - a single flat colour picked by which sharpness band the ratio
-///     falls in.</item>
-/// </list>
-///
-/// We only ever <b>read</b> those config values via reflection - the colour palettes themselves are
-/// hard-coded in <see cref="SharpnessPalette"/> (copied from Toolsmith source) so we need no
-/// Toolsmith.dll reference. If Toolsmith's fields ever move/rename, reflection fails softly and we
-/// fall back to Toolsmith's own defaults (both booleans false, selection 0 -> flat bands).
+/// Reads the player's Toolsmith display mode (flat bands / gradient / sections) via reflection —
+/// no Toolsmith.dll reference needed. Falls back to flat bands if the fields move or rename.
+/// On fold-in: read ToolsmithModSystem.ClientConfig directly. Collapses to a few lines.
 /// </summary>
 public static class ToolsmithSharpnessConfig
 {

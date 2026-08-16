@@ -4,28 +4,11 @@ using Vintagestory.API.Common;
 namespace LibGuiToolsmithSharpness.Toolsmith;
 
 /// <summary>
-/// Computes the durability ratio Toolsmith wants shown for a tinkered (multi-part) tool: the
-/// health of the component CLOSEST TO BREAKING, not the tool head.
-///
-/// A Toolsmith tinkered tool is three parts - head, handle, binding - each with its own
-/// current/max durability, and the whole tool breaks when ANY one part hits zero. Vanilla (and
-/// therefore LibGUI's <c>ItemSlotOverlay</c>) only knows the head: it draws
-/// <c>GetRemainingDurability / GetMaxDurability</c>, which Toolsmith maps to the head, so a tool
-/// with a near-full head but a nearly-snapped binding shows a misleadingly full green bar.
-///
-/// This mirrors Toolsmith's own GUI transpiler (<c>ToolTinkeringGuiElementPatches</c> ->
-/// <c>TinkeringUtility.FindLowestCurrentDurabilityForBar</c> /
-/// <c>FindLowestMaxDurabilityForBar</c>): it takes the minimum current across the three parts
-/// and the minimum max across the three parts, INDEPENDENTLY, then draws minCurrent / minMax.
-/// (In practice both minima land on the same about-to-break part, e.g. a chert shovel binding
-/// at 5/30 -> ~17%, red.) We reproduce that exactly rather than a true min-of-ratios so the bar
-/// matches what standalone Toolsmith shows.
-///
-/// Like <see cref="SharpnessReader"/>, we read RAW attributes and only ever call the two vanilla
-/// collectible methods LibGUI itself already calls on this same stack in the same Build
-/// (<c>GetMaxDurability</c> / <c>GetRemainingDurability</c> for the head) - so we add no new side
-/// effects and need no Toolsmith.dll reference. We never touch Toolsmith's <c>Get*Durability()</c>
-/// extensions, several of which lazily reset/repair attributes as a side effect.
+/// Weakest-component durability for tinkered tools — the part closest to breaking, not just the head.
+/// Mirrors TinkeringUtility.FindLowest*DurabilityForBar: independent min(current) and min(max)
+/// across head/handle/binding, so the bar matches what standalone Toolsmith shows.
+/// Never calls Get*Durability() extensions — several lazily reset/repair attributes as a side effect.
+/// On fold-in: replace with direct TinkeringUtility calls.
 /// </summary>
 public static class DurabilityReader
 {
@@ -37,11 +20,7 @@ public static class DurabilityReader
     public const string BindingMaxKey = "tinkeredToolBindingMaxDurability";
     public const string HeadCurrentKey = "durability";
 
-    /// <summary>
-    /// True when the stack carries the full set of tinkered-tool component attributes, i.e. it is
-    /// an assembled Toolsmith tool whose durability bar should reflect the weakest part. Detached
-    /// tool parts and plain vanilla tools return false and keep LibGUI's default bar.
-    /// </summary>
+    /// <summary>True when the stack is an assembled tinkered tool with all three component attributes.</summary>
     public static bool IsTinkeredTool(ItemStack? stack)
     {
         var attributes = stack?.Attributes;
@@ -54,13 +33,10 @@ public static class DurabilityReader
     }
 
     /// <summary>
-    /// For a tinkered tool, computes the 0..1 ratio of the part closest to breaking and whether a
-    /// bar should be drawn at all. <paramref name="show"/> is false when the tool is pristine
-    /// (minCurrent == minMax), matching LibGUI's "no bar at full durability" behaviour.
-    /// <paramref name="allComponentsFull"/> is true only when EVERY part (head, handle, binding) is
-    /// at full durability - i.e. the tool has never been used - which the sharpness bar uses to
-    /// detect a freshly-crafted tool (min equality alone doesn't imply all parts are full). Returns
-    /// false for non-tinkered stacks (leave LibGUI's default durability bar in place).
+    /// Weakest-component ratio. <paramref name="show"/> is false at pristine (matches LibGUI's "no bar
+    /// at full"). <paramref name="allComponentsFull"/> is true only when every part is at max — used by
+    /// the sharpness bar to detect a freshly-crafted tool (min equality alone doesn't imply all full).
+    /// Returns false for non-tinkered stacks.
     /// </summary>
     public static bool TryGetLowestRatio(ItemStack? stack, out float ratio, out bool show, out bool allComponentsFull)
     {

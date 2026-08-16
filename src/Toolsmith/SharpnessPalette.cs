@@ -5,13 +5,8 @@ using Vintagestory.API.MathTools;
 namespace LibGuiToolsmithSharpness.Toolsmith;
 
 /// <summary>
-/// The exact sharpness-bar colour maths from Toolsmith (<c>Toolsmith.ToolTinkering.TinkeringUtility</c>),
-/// reproduced so our LibGUI bar matches what standalone Toolsmith paints for the player's chosen mode.
-///
-/// The hex palettes are copied verbatim from Toolsmith source (we own no Toolsmith.dll reference); only
-/// the player's *mode/selection* is read live from config via <see cref="ToolsmithSharpnessConfig"/>.
-/// We feed the same hex strings through the same <see cref="ColorUtil"/> calls Toolsmith uses
-/// (<c>Hex2Int</c> -> <c>ColorOverlay</c> -> <c>ToRGBAFloats</c>), so the resulting RGB is identical.
+/// Toolsmith's sharpness colour palettes, copied verbatim from TinkeringUtility so our bar matches
+/// its colours exactly. On fold-in: delete this and call TinkeringUtility's colour methods directly.
 /// </summary>
 public static class SharpnessPalette
 {
