@@ -33,6 +33,7 @@ rm -rf "$STAGE"
 mkdir -p "$STAGE"
 cp "$DLL" "$STAGE/"
 cp "$SRC/modinfo.json" "$STAGE/"
+[[ -f "$SRC/modicon.png" ]] && cp "$SRC/modicon.png" "$STAGE/"
 cp -R "$SRC/assets" "$STAGE/"
 
 echo "==> Done. Restart Vintage Story (or reload mods) to pick up the change."

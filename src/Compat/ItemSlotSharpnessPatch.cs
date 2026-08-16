@@ -4,8 +4,9 @@ using Gui.Widgets.Framework;
 using Gui.Widgets.Inventory;
 using Gui.Widgets.Layout;
 using HarmonyLib;
+using LibGuiToolsmithSharpness.Toolsmith;
 
-namespace LibGuiToolsmithSharpness;
+namespace LibGuiToolsmithSharpness.Compat;
 
 /// <summary>
 /// Postfix on LibGUI's <see cref="ItemSlotOverlay.Build"/>. That single method builds the
@@ -50,20 +51,26 @@ public static class ItemSlotSharpnessPatch
 
         var itemStack = __instance.Slot?.Itemstack;
 
-        bool hasSharpness = SharpnessReader.TryGetRatio(itemStack, out float sharpnessRatio);
+        bool hasSharpness = SharpnessReader.TryGetRatio(itemStack, out float sharpnessRatio, out bool sharpnessUninitialized);
         bool isTinkered = DurabilityReader.TryGetLowestRatio(itemStack, out float durabilityRatio, out bool showDurability, out bool allComponentsFull);
 
-        if (!hasSharpness && !isTinkered)
+        // We draw the sharpness bar for ANY Toolsmith sharpenable, including fully keen (ratio == 1).
+        // Standalone Toolsmith hides the bar at 100%, but a missing bar reads as "no info" rather than
+        // "sharp" - so we keep it visible and let SharpnessBar render a distinct gleaming keen state.
+        bool showSharpness = hasSharpness;
+
+        if (!showSharpness && !isTinkered)
         {
-            // Not a Toolsmith tool (or no relevant stats) - leave the overlay untouched.
+            // Not a Toolsmith tool and nothing to fix - leave the overlay untouched.
             return;
         }
 
         // A freshly-crafted tool (never used -> durability pristine) that still isn't fully sharp can
         // be sharpened for FREE before first use. Flag that so the sharpness bar shows the "sharpen
-        // me" hint. The check self-clears the instant the tool is used and loses any durability.
+        // me" hint. A tool whose sharpness attributes haven't been written yet is fresh by definition
+        // (never hovered since crafting). The check self-clears the instant the tool is used.
         bool durabilityPristine = isTinkered ? allComponentsFull : DurabilityReader.IsVanillaDurabilityFull(itemStack);
-        bool isFresh = hasSharpness && sharpnessRatio < 1f && durabilityPristine;
+        bool isFresh = showSharpness && (sharpnessUninitialized || durabilityPristine);
 
         // Mirror ItemSlotOverlay.Build's own padding resolution so our bars line up with LibGUI's.
         var theme = Theme.Of(context);
@@ -95,7 +102,7 @@ public static class ItemSlotSharpnessPatch
             children = new List<Widget>(stack.Children);
         }
 
-        if (hasSharpness)
+        if (showSharpness)
         {
             EdgeInsets lifted = EdgeInsets.Only(
                 edge.Left,

@@ -5,9 +5,10 @@ using Gui.Widgets.Basic;
 using Gui.Widgets.Framework;
 using Gui.Widgets.Layout;
 using Gui.Widgets.Painting;
+using LibGuiToolsmithSharpness.Toolsmith;
 using OpenTK.Mathematics;
 
-namespace LibGuiToolsmithSharpness;
+namespace LibGuiToolsmithSharpness.Compat;
 
 /// <summary>
 /// A Toolsmith "sharpness" bar for a LibGUI item slot, mirroring the geometry of LibGUI's own
@@ -26,10 +27,14 @@ namespace LibGuiToolsmithSharpness;
 ///   <item><b>Fresh-tool hint.</b> When <see cref="IsFresh"/> (a just-crafted tool that can still be
 ///     sharpened for free), a faint breathing <see cref="SharpnessGhostPulse"/> fills the negative
 ///     space to nudge the player to sharpen before first use.</item>
+///   <item><b>Keen state.</b> At full sharpness (ratio >= 1) we render a solid bar in the palette's
+///     top colour with a periodic sweeping gleam (<see cref="SharpnessKeenSweep"/>) - a positive
+///     "this edge is keen" signal, rather than standalone Toolsmith's blank/hidden bar.</item>
 /// </list>
 ///
-/// Note we only draw this bar at all when sharpness is below max (see the patch / SharpnessReader),
-/// matching Toolsmith's own "no bar when fully sharp" convention - so a missing bar means "keen".
+/// Unlike standalone Toolsmith (which hides the bar at 100%), we keep the bar visible for every
+/// Toolsmith tool: a blank slot reads as "no info", so the always-present bar - graded fill when
+/// dulling, gleaming keen state when sharp - means the player never has to hover just to check.
 /// </summary>
 public class SharpnessBar : StatelessWidget
 {
@@ -70,17 +75,27 @@ public class SharpnessBar : StatelessWidget
         ColorScheme scheme = Theme.Of(context).ColorScheme;
 
         float innerWidth = SlotSize - 8f;
-        // Same min-stub as DurabilityBar so a near-zero sharpness still shows a sliver of its band colour.
-        float fillWidth = Math.Clamp(Math.Max(innerWidth * Ratio, BarHeight), 0f, innerWidth);
+
+        // Fully sharp: a solid keen bar with a periodic gleam, instead of the old "no bar" (which read
+        // as "no info"). Always present so the player never has to hover just to confirm the edge holds.
+        if (Ratio >= 1f)
+        {
+            return BuildKeen(scheme, innerWidth);
+        }
+
+        // No min-stub: at zero sharpness we want a clean empty (bordered) track, not a stray sliver.
+        float fillWidth = Math.Clamp(innerWidth * Ratio, 0f, innerWidth);
         bool dull = Ratio < DullThreshold;
 
         var layers = new List<Widget>(3);
 
-        // 1. Track (full width). Matches DurabilityBar's dark track; a faint themed outline keeps the
-        //    bar's extent legible even when nearly empty, escalating to Error when critically dull.
+        // 1. Track - EXPLICIT full width (a width-less Container collapses to 0 in a Stack, which also
+        //    made the bar shrink to the fill width and appear centred). A faint themed outline keeps
+        //    the bar's extent legible even when empty, escalating to Error when critically dull.
         Vector4 outline = dull ? scheme.Error : WithAlpha(scheme.OutlineVariant, 0.9f);
         layers.Add(new Container(new BoxStyle
         {
+            Width = innerWidth,
             Height = BarHeight,
             Color = new Vector4(0f, 0f, 0f, 0.55f),
             CornerRadius = new Vector4(1.5f),
@@ -88,16 +103,26 @@ public class SharpnessBar : StatelessWidget
             BorderColor = outline
         }));
 
-        // 2. Fresh-tool hint, under the fill so it only shows in the unsharp negative space.
+        // 2. Fresh-tool hint, under the fill so it only shows in the unsharp negative space. Full
+        //    width so it fills the whole bar; the opaque fill on top masks the sharpened portion.
         if (IsFresh)
         {
-            layers.Add(new SharpnessGhostPulse());
+            layers.Add(new SharpnessGhostPulse(innerWidth));
         }
 
         // 3. Fill, coloured to match the player's Toolsmith mode.
         layers.Add(BuildFill(fillWidth, innerWidth));
 
         return new Stack(layers);
+    }
+
+    // Fully-sharp bar: a solid "keen" bar coloured from the player's palette top, with a soft
+    // highlight that periodically sweeps across it - a positive "this edge is keen" signal.
+    private Widget BuildKeen(ColorScheme scheme, float innerWidth)
+    {
+        Vector4 baseColor = SharpnessPalette.TopColor(Mode, GradientSelection);
+        Vector4 outline = WithAlpha(scheme.OutlineVariant, 0.9f);
+        return new SharpnessKeenSweep(innerWidth, baseColor, outline);
     }
 
     private Widget BuildFill(float fillWidth, float innerWidth)

@@ -4,10 +4,10 @@
   "modid": "libguitoolsmithsharpness",
   "name": "LibGUI Toolsmith Sharpness",
   "authors": [
-    "Nick"
+    "RaptorKhan"
   ],
-  "description": "Shows the Toolsmith sharpness stat as a bar above the durability bar on LibGUI item slots (HudUI hotbar + PlayerInvUI inventory), coloured to match your Toolsmith display mode, and fixes the durability bar to show a tinkered tool's weakest component.",
-  "version": "1.0.0",
+  "description": "Draws Toolsmith sharpness bars on LibGUI item slots.",
+  "version": "1.0.1",
   "side": "Client",
   "requiredOnClient": true,
   "requiredOnServer": false,

@@ -1,7 +1,7 @@
 using System;
 using Vintagestory.API.Common;
 
-namespace LibGuiToolsmithSharpness;
+namespace LibGuiToolsmithSharpness.Toolsmith;
 
 /// <summary>
 /// Computes the durability ratio Toolsmith wants shown for a tinkered (multi-part) tool: the

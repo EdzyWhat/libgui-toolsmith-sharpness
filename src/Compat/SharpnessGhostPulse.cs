@@ -5,7 +5,7 @@ using Gui.Widgets.Framework;
 using Gui.Widgets.Painting;
 using OpenTK.Mathematics;
 
-namespace LibGuiToolsmithSharpness;
+namespace LibGuiToolsmithSharpness.Compat;
 
 /// <summary>
 /// The "sharpen me" hint for a freshly-forged tool: a faint, full-width bar drawn UNDER the fill so
@@ -15,15 +15,21 @@ namespace LibGuiToolsmithSharpness;
 /// (see <see cref="DurabilityReader"/>'s pristine check), so the animation only ever runs on tools
 /// that genuinely still want sharpening.
 ///
-/// Cadence: one slow ~1.8s breathe (ease in/out via a sine half-wave) followed by a ~3s rest, on a
-/// ~4.8s loop. It's an "attend to this soon", not an "act now", so the long rest keeps it calm.
-/// The colour is the theme's <c>Primary</c> accent (thematic, not a hard-coded call-to-action red).
+/// Cadence: one ~1.5s breathe (ease in/out via a sine half-wave) followed by a short ~1s rest, on a
+/// ~2.5s loop - so it's almost continuously pulsing with only a brief pause between breaths, since
+/// the bar's on-screen area is tiny and a long rest made the hint easy to miss. Even at rest the
+/// ghost stays faintly present so the unsharp negative space is always marked. The colour is the
+/// theme's <c>Primary</c> accent (thematic, not a hard-coded call-to-action red).
 /// </summary>
 public class SharpnessGhostPulse : StatefulWidget
 {
-    public SharpnessGhostPulse(Gui.Widgets.Framework.Key? key = null)
+    /// <summary>Full width of the bar, so the hint spans the whole track (not a collapsed 0px).</summary>
+    public float Width { get; }
+
+    public SharpnessGhostPulse(float width, Gui.Widgets.Framework.Key? key = null)
         : base(key)
     {
+        Width = width;
     }
 
     public override State CreateState()
@@ -32,15 +38,17 @@ public class SharpnessGhostPulse : StatefulWidget
     }
 }
 
-internal sealed class SharpnessGhostPulseState : State
+internal sealed class SharpnessGhostPulseState : State<SharpnessGhostPulse>
 {
-    // One full loop; the breathe occupies the first slice, the remainder is a calm rest.
-    private static readonly TimeSpan CycleDuration = TimeSpan.FromMilliseconds(4800);
-    private const double BreatheEnd = 1800.0 / 4800.0; // fraction of the loop spent breathing
+    // One full loop; the breathe occupies the first slice, the remainder is a short rest. Kept
+    // almost-continuous (~1.5s breathe + ~1s rest) so the tiny bar's hint is hard to miss.
+    private static readonly TimeSpan CycleDuration = TimeSpan.FromMilliseconds(2500);
+    private const double BreatheEnd = 1500.0 / 2500.0; // fraction of the loop spent breathing
 
-    // Faint by design - a hint in the negative space, never a solid bar.
-    private const float RestAlpha = 0.10f;
-    private const float PeakAlpha = 0.34f;
+    // Faint by design - a hint in the negative space, never a solid bar. Even at rest the ghost
+    // stays faintly present so the unsharp space is always marked; the breathe lifts it briefly.
+    private const float RestAlpha = 0.12f;
+    private const float PeakAlpha = 0.42f;
 
     private AnimationController? _controller;
 
@@ -75,6 +83,7 @@ internal sealed class SharpnessGhostPulseState : State
 
         return new Container(new BoxStyle
         {
+            Width = Widget.Width,
             Height = SharpnessBar.BarHeight,
             Color = ghost,
             CornerRadius = new Vector4(1.5f)

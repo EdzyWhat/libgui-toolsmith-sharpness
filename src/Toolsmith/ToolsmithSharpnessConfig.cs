@@ -1,7 +1,7 @@
 using System;
 using System.Reflection;
 
-namespace LibGuiToolsmithSharpness;
+namespace LibGuiToolsmithSharpness.Toolsmith;
 
 /// <summary>
 /// Reads the player's Toolsmith sharpness-bar *display* preferences so our LibGUI bar colours the

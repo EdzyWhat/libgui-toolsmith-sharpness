@@ -2,7 +2,7 @@ using System;
 using OpenTK.Mathematics;
 using Vintagestory.API.MathTools;
 
-namespace LibGuiToolsmithSharpness;
+namespace LibGuiToolsmithSharpness.Toolsmith;
 
 /// <summary>
 /// The exact sharpness-bar colour maths from Toolsmith (<c>Toolsmith.ToolTinkering.TinkeringUtility</c>),
@@ -56,6 +56,21 @@ public static class SharpnessPalette
     public static Vector4 SectionColor(int index)
     {
         return ToVec(FlatLevelColors[Math.Clamp(index, 0, 4)]);
+    }
+
+    /// <summary>
+    /// The "keen" colour for a given mode - i.e. what the fill would be at 100% sharp - so a
+    /// fully-sharp bar is coloured from the player's own palette (the top band/section, or the top
+    /// of the gradient ramp). For the default flat mode this is Toolsmith's light-blue top band.
+    /// </summary>
+    public static Vector4 TopColor(ToolsmithSharpnessConfig.SharpnessMode mode, int selection)
+    {
+        return mode switch
+        {
+            ToolsmithSharpnessConfig.SharpnessMode.Gradient => GradientColor(1f, selection),
+            ToolsmithSharpnessConfig.SharpnessMode.Sections => SectionColor(SectionFractions.Length - 1),
+            _ => BandColor(1f),
+        };
     }
 
     /// <summary>

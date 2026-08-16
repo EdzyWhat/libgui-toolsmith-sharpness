@@ -1,0 +1,57 @@
+name: Bug report
+description: A bar is missing, misdrawn, or the mod errors. Version info is essential — this mod patches other mods' compiled code.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report! This mod Harmony-patches LibGUI and reads Toolsmith's data, so it's
+        sensitive to the exact versions of the mods involved. Please fill in the versions below — most
+        "bar disappeared after an update" issues come down to a version mismatch.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead? Screenshots help a lot for visual issues.
+    validations:
+      required: true
+  - type: input
+    id: vs-version
+    attributes:
+      label: Vintage Story version
+      placeholder: "1.22.0"
+    validations:
+      required: true
+  - type: input
+    id: gui-version
+    attributes:
+      label: LibGUI (gui) version
+      placeholder: "3.1.0"
+    validations:
+      required: true
+  - type: input
+    id: toolsmith-version
+    attributes:
+      label: Toolsmith version
+      placeholder: "1.2.18"
+    validations:
+      required: true
+  - type: input
+    id: ui-mods
+    attributes:
+      label: HudUI / PlayerInvUI versions (if installed)
+      description: Which LibGUI-based UI mods are installed, and their versions? Note whether the issue is on the hotbar (HudUI) or in the inventory (PlayerInvUI).
+      placeholder: "hudui 1.x, playerinvui 1.x"
+    validations:
+      required: false
+  - type: textarea
+    id: log
+    attributes:
+      label: Client log
+      description: |
+        Paste the relevant lines from `client-main.log`. In particular, look for the mod's startup line:
+        `[libguitoolsmithsharpness] Patched ...` (patch attached) or a `No methods were patched` warning
+        (the patch target moved — usually a LibGUI update).
+      render: text
+    validations:
+      required: false
