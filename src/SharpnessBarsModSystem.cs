@@ -25,7 +25,7 @@ public class SharpnessBarsModSystem : ModSystem
         Logger = api.Logger;
 
         _harmony = new Harmony(HarmonyId);
-        _harmony.PatchAll(typeof(SharpnessBarsModSystem).Assembly);
+        _harmony.PatchCategory("toolsmith.libgui.compat");
 
         // Confirm the patch actually attached to LibGUI's ItemSlotOverlay.Build (this is
         // version-sensitive - a LibGUI/HudUI/PlayerInvUI update could move the method).

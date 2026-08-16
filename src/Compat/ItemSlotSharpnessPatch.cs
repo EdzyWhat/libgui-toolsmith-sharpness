@@ -30,6 +30,9 @@ namespace LibGuiToolsmithSharpness.Compat;
 /// (ItemStack / SlotSize) - and reuse LibGUI's own <see cref="ItemSlotOverlay.DurabilityBarKey"/>
 /// for the replacement bar - so the framework's reconciliation stays stable frame to frame.
 /// </summary>
+// If this patch moves into Toolsmith, register it as its own category and apply it only from
+// inside the gui-gated ModSystem — not from Toolsmith's main PatchAll pass. See HANDOFF.md.
+[HarmonyPatchCategory("toolsmith.libgui.compat")]
 [HarmonyPatch(typeof(ItemSlotOverlay), "Build")]
 public static class ItemSlotSharpnessPatch
 {
