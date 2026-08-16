@@ -1,3 +1,5 @@
+// [FOLD-IN] DELETE this file when folding into Toolsmith. It copies Toolsmith's hex palettes verbatim
+// (a drift risk). Replace with direct TinkeringUtility colour calls — INTEGRATION.md L1.
 using System;
 using OpenTK.Mathematics;
 using Vintagestory.API.MathTools;

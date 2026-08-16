@@ -1,3 +1,6 @@
+// [FOLD-IN] DELETE this file when folding into Toolsmith. It reads Toolsmith's client config by
+// reflection only because it can't reference Toolsmith.dll. Inside Toolsmith, read the fields directly
+// (collapses to a few lines) — INTEGRATION.md L1.
 using System;
 using System.Reflection;
 

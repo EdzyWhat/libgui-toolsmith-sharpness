@@ -1,3 +1,6 @@
+// [FOLD-IN] DELETE this file when folding into Toolsmith. It re-declares Toolsmith's attribute keys and
+// re-implements the weakest-component min logic. Replace with Toolsmith's own
+// TinkeringUtility.FindLowestCurrent/MaxDurabilityForBar — INTEGRATION.md L1.
 using System;
 using Vintagestory.API.Common;
 

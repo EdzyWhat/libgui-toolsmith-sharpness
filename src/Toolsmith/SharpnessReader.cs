@@ -1,3 +1,6 @@
+// [FOLD-IN] DELETE this file when folding into Toolsmith. It exists only because this is an external
+// mod (behaviour detected by class-name string match; raw attribute reads). Replace its callers with
+// real `is CollectibleBehaviorTool*` checks + Toolsmith's own attribute constants — INTEGRATION.md L1.
 using Vintagestory.API.Common;
 
 namespace LibGuiToolsmithSharpness.Toolsmith;

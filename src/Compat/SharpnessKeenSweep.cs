@@ -1,3 +1,5 @@
+// [FOLD-IN] KEEP this file (LibGUI bridge widget: the keen-state gleam). Port unchanged — INTEGRATION.md L2.
+// If you want a more vanilla-flavoured animation on Toolsmith's Cairo path, diverge it there, not here.
 using System;
 using Gui.Widgets.Animations;
 using Gui.Widgets.Basic;

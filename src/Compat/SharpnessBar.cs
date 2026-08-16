@@ -1,3 +1,5 @@
+// [FOLD-IN] KEEP this file (LibGUI bridge widget). Port unchanged — INTEGRATION.md L2. Its Mode /
+// GradientSelection inputs come from the Toolsmith layer; on fold-in, feed them from Toolsmith's config.
 using System;
 using System.Collections.Generic;
 using Gui.Core.Layout;

@@ -1,3 +1,6 @@
+// [FOLD-IN] KEEP this file. It's the core LibGUI bridge (the Harmony patch on ItemSlotOverlay.Build).
+// Port unchanged, but apply the patch only from a gui-gated ModSystem so it never loads without
+// LibGUI — INTEGRATION.md L2.
 using System.Collections.Generic;
 using Gui.Rendering;
 using Gui.Widgets.Framework;

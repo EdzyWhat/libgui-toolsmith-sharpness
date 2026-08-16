@@ -1,3 +1,4 @@
+// [FOLD-IN] KEEP this file (LibGUI bridge widget: the fresh-tool hint). Port unchanged — INTEGRATION.md L2.
 using System;
 using Gui.Widgets.Animations;
 using Gui.Widgets.Basic;
