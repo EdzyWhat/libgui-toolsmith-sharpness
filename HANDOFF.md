@@ -1,114 +1,117 @@
 # Hey JonR
 
-So, you found this. Our preference is to **fold it into Toolsmith** if you're open to it — and it's less work than it looks. About half the code here is a workaround for not having access to Toolsmith internals, and it just deletes itself the moment it moves inside. The actual LibGUI bridge is net new code, not a rewrite of anything you have.
+Fair warning: I vibe-coded most of this over two days and I'm genuinely reading some of it for the first time right now. It works — tested against three versions of Toolsmith on 1.2.x — but I wanted to be upfront about that before handing it over.
 
-That said, either path works. This doc covers both.
+Anyway. **Fold it into Toolsmith** if you're open to it. Half this codebase exists purely because I can't reference your DLL from the outside, and it evaporates the moment it moves inside. What's left is the actual LibGUI bridge — new code, nothing you'd be rewriting.
 
----
-
-## What this does
-
-Sharpness bar + weakest-component durability fix, on every LibGUI slot. One Harmony **postfix** on `ItemSlotOverlay.Build` — the single method HudUI and PlayerInvUI both route their slots through — covers both UIs without touching either of them directly.
-
-Worth flagging: it's a postfix, not a transpiler. We let Build run normally, then modify the returned widget tree. No IL surgery, no instruction-sequence pattern matching — which means a LibGUI refactor that keeps the return type intact won't silently break anything.
+Either path is fine. This doc covers both.
 
 ---
 
-## Your two options
+## What it does
 
-### Option A: fold it into Toolsmith
+Sharpness bar + weakest-component durability fix, on every LibGUI slot. One Harmony **postfix** on `ItemSlotOverlay.Build` — the single method HudUI and PlayerInvUI both route their slots through.
 
-**This is probably the move.** Here's why: about half the code here is a workaround for not having access to Toolsmith internals. The reflection on your config fields, the copied colour palettes, the behaviour-name string matching, the re-declared attribute key constants — all of that just disappears and gets replaced with direct calls to your own APIs. The actual LibGUI bridge (the Harmony patch + the bar widgets) is a net new addition, not a rewrite.
+Worth flagging: postfix, not transpiler. I let Build finish, grab the returned widget tree, swap in what I need. No IL surgery, no instruction-sequence pattern matching. You mentioned a hardcoded patch breaking things in GloomeClasses — this approach sidesteps exactly that.
 
-Your existing `assets/toolsmith/compatibility/` pattern is a JSON thing; this is C# because it has to patch a compiled method, but the spirit is the same — an optional module that activates only when LibGUI is present.
+---
 
-The new thing you'd take on: a compile-time `Gui.dll` reference and the discipline of keeping the LibGUI code unreachable when `gui` isn't installed (the JIT only resolves a type when a method referencing it is called, so "never call it without confirming LibGUI is loaded" is sufficient). There's already a `toolsmith-integration` branch in this repo that shows exactly what that looks like with `[FOLD-IN]` markers on every file.
+## Your options
+
+### Option A: fold it in (probably the move)
+
+Half the code here is embarrassing scaffolding:
+
+- Reflecting over your config field names because I can't read them directly
+- Copying your hex palettes verbatim (drift risk, I know)
+- Detecting your tool types by class-name string match
+- Re-declaring your attribute key constants
+
+All of that just... goes away. Replace it with direct calls to `TinkeringUtility`, `ToolsmithAttributes`, and `ClientConfig`. Your existing `assets/toolsmith/compatibility/` pattern is JSON because your other compat is JSON — this is C# because it has to patch a compiled method, but the spirit's the same.
+
+New thing you'd take on: a compile-time `Gui.dll` reference and keeping the LibGUI code unreachable when `gui` isn't installed. The JIT only resolves a type when a method referencing it gets called, so the gate is just `api.ModLoader.IsModEnabled("gui")` before touching anything in `Compat/`. There's a `toolsmith-integration` branch here that annotates every file with exactly what to keep and delete.
 
 ### Option B: co-maintain the standalone
 
-Totally valid if you'd rather not touch Toolsmith's build or add a new compile-time dependency. I'll keep the standalone working on new VS/LibGUI/Toolsmith releases. The main ask would be a heads-up when your attribute key names or config fields change, since this mod reads them by reflection and hardcoded string.
+Also fine. I'll keep it working across VS/LibGUI/Toolsmith updates. Main ask: heads-up when your attribute key names or config fields change, since I'm reading them by reflection and hardcoded string. (Yes I know. See "embarrassing scaffolding" above.)
 
 ---
 
 ## Fold-in roadmap
 
-### Step 1 — delete the shim layer (`src/Toolsmith/`)
+### Step 1 — delete `src/Toolsmith/` (all four files, guilt-free)
 
-These four files exist only because we can't reference Toolsmith.dll from the outside. On a fold-in they're gone:
+| File | What it does right now | What replaces it |
+|------|------------------------|------------------|
+| `ToolsmithSharpnessConfig.cs` | Reflects `ToolsmithModSystem.ClientConfig` + `GradientSelection` by field name | Just read them directly — collapses to a few lines |
+| `SharpnessPalette.cs` | Your hex palettes, copied verbatim, re-derived via `ColorUtil` | Call `TinkeringUtility`'s colour methods |
+| `SharpnessReader.cs` | Detects tools by behaviour class-name string; guesses the 0.66 fresh ratio | Real `is CollectibleBehaviorToolHead` type checks + `ToolsmithAttributes` constants |
+| `DurabilityReader.cs` | Re-declares your `tinkeredTool*Durability` keys; re-implements `FindLowest*` | `TinkeringUtility.FindLowestCurrentDurabilityForBar` / `FindLowestMaxDurabilityForBar` |
 
-| File | What it does (outside) | What replaces it (inside Toolsmith) |
-|------|------------------------|--------------------------------------|
-| `ToolsmithSharpnessConfig.cs` | Reflects `ToolsmithModSystem.ClientConfig` and `GradientSelection` by field name | Read those fields directly — collapses to a few lines |
-| `SharpnessPalette.cs` | Copies your hex palettes verbatim; re-derives colours via `ColorUtil` | Call `TinkeringUtility`'s colour methods (removes the palette drift risk) |
-| `SharpnessReader.cs` | Detects Toolsmith tools by behaviour class-name string; reads raw `toolSharpness*` attrs; guesses the fresh-tool 0.66 ratio | Real `is CollectibleBehaviorToolHead` / `...SmithedTools` type checks + your `ToolsmithAttributes` constants |
-| `DurabilityReader.cs` | Re-declares your `tinkeredTool*Durability` key names; re-implements `FindLowest*` | Call `TinkeringUtility.FindLowestCurrentDurabilityForBar` / `FindLowestMaxDurabilityForBar` directly |
+One thing that doesn't change: don't call `Get*Sharpness()` or `Get*Durability()` from the render path. Several of them write or repair attributes as a side effect — fine from a tick, catastrophic from inside `Build`. Raw reads only. (Or init sharpness at craft time and drop the fresh-tool heuristic entirely, which is probably cleaner anyway.)
 
-One rule that does **not** relax: never trigger Toolsmith's lazy-init extension helpers (`Get*Sharpness()`, `Get*Durability()`) from the render path. Several of them write or repair attributes as a side effect, which is fine from a tick but bad from a `Build` call. The shim layer was careful about this — use a pure read path, or add a `TryPeekSharpness` that peeks without initialising. (Or just init sharpness at craft time and drop the fresh-tool heuristic entirely.)
+### Step 2 — move `src/Compat/` to `Toolsmith/Client/LibGui/`
 
-### Step 2 — keep the bridge layer (`src/Compat/`), but gate it
+These go over as-is:
 
-These files move over as-is. They live cleanly in something like `Toolsmith/Client/LibGui/`:
+- `ItemSlotSharpnessPatch.cs` — already tagged `[HarmonyPatchCategory("toolsmith.libgui.compat")]` so your `PatchAll` won't sweep it up accidentally
+- `SharpnessBar.cs`, `SharpnessKeenSweep.cs`, `SharpnessGhostPulse.cs` — the bar widgets, no changes needed
 
-- `ItemSlotSharpnessPatch.cs` — the Harmony postfix. Already tagged `[HarmonyPatchCategory("toolsmith.libgui.compat")]` so your existing `PatchAll` won't sweep it up accidentally.
-- `SharpnessBar.cs`, `SharpnessKeenSweep.cs`, `SharpnessGhostPulse.cs` — the bar widgets. No changes needed; they already call into the shim layer which you'll have replaced with your own APIs.
-
-The gate is a new client `ModSystem` (or just a guard in your existing one) that checks `api.ModLoader.IsModEnabled("gui")` before applying the category patch. That check is the whole thing — if LibGUI isn't installed, none of the `Gui.*` types are ever resolved and Toolsmith loads fine.
+The gate:
 
 ```csharp
-// Inside your client ModSystem or a new LibGuiCompatModSystem:
 if (!api.ModLoader.IsModEnabled("gui")) return;
 harmony.PatchCategory("toolsmith.libgui.compat");
-// ...log whether ItemSlotOverlay.Build was actually patched
 ```
 
-Don't add `gui` to your `modinfo.json` dependencies — compile-time reference only (`Private=false`, same as we do in `src/Mod.csproj`).
+Don't add `gui` to `modinfo.json` dependencies — compile-time reference only (`Private=false`).
 
-### One design call to make: always-on vs hide-when-keen
+### One call to make: always-on vs hide-when-keen
 
-We show the sharpness bar at 100% — Toolsmith hides it. You noted that hiding it mirrors vanilla durability behaviour, and that's a fair default. Our reasoning was that when scanning a row of freshly-forged tools, an absent bar is ambiguous (sharp? untracked?), so we wanted the bar to always mean something: sweep = done, fill = in progress, ghost = free hone. But it's a genuine preference, not an obvious right answer.
+You mentioned hiding the bar at 100% mirrors vanilla durability — you're right, that's a legitimate default. My reasoning was that when scanning a row of freshly-forged tools, an absent bar is ambiguous: sharp, or just not a Toolsmith tool? I wanted the bar to always mean something. It's a preference, not gospel.
 
-If you fold this in and want to give players the choice, a `ShowSharpnessBarWhenKeen` boolean in `ToolsmithClientConfigs` sits naturally next to `UseGradientForSharpnessInstead`. The check in `SharpnessBar.Build` is one `if`.
+If you want to give players the choice: `ShowSharpnessBarWhenKeen` in `ToolsmithClientConfigs` next to `UseGradientForSharpnessInstead`, and it's one `if` in `SharpnessBar.Build`.
 
-### The checklist
+### Checklist
 
 - [ ] Copy `src/Compat/` into `Toolsmith/Client/LibGui/`
 - [ ] Replace `src/Toolsmith/` shim calls with direct Toolsmith API calls (table above)
-- [ ] Add a `gui`-gated code path that calls `harmony.PatchCategory("toolsmith.libgui.compat")`
+- [ ] Add `api.ModLoader.IsModEnabled("gui")` gate + `harmony.PatchCategory("toolsmith.libgui.compat")`
 - [ ] Add compile-time `Gui.dll` reference (`Private=false`)
-- [ ] Decide always-on vs hide-when-keen (see above); add config toggle if wanted
-- [ ] Confirm Toolsmith loads and behaves normally with **no** LibGUI installed
-- [ ] Confirm bars appear on HudUI hotbar and PlayerInvUI grids with LibGUI installed
+- [ ] Decide always-on vs hide-when-keen; add toggle if wanted
+- [ ] Confirm Toolsmith loads normally with **no** LibGUI installed
+- [ ] Confirm bars appear on HudUI + PlayerInvUI with LibGUI installed
 
 ---
 
 ## Co-maintain roadmap
 
-Mostly just: point me at breaking changes. The fragile spots are:
+Point me at breaking changes. The fragile bits:
 
-- `ItemSlotOverlay.Build` — the patch target. If LibGUI restructures this method, the patch breaks. The mod logs `[libguitoolsmithsharpness] No methods were patched` if it can't find it, so players will know.
-- Your config fields (`UseGradientForSharpnessInstead`, `ShowAllSharpnessBarSections`, `GradientSelection`) — read by reflection. If they move or rename, the bar silently falls back to flat-band mode.
-- Your attribute keys (`toolSharpnessCurrent`, `toolSharpnessMax`, `tinkeredTool*Durability`) — hardcoded. A rename would need a patch release on our end.
-
----
-
-## The animations — optional polish
-
-Two of the bars animate. They're nice, but they're optional — the fold-in can ship without them and add them later.
-
-**SharpnessKeenSweep** (the fully-sharp bar): a soft highlight glides left-to-right across the bar on a loop. Signals "this edge is keen" positively, instead of a blank bar that reads as "no info." In LibGUI this is a `StatefulWidget` with an `AnimationController`. On your vanilla Cairo path there's no per-frame hook in `ComposeSlotOverlays` (it bakes to a texture once), so you'd draw the animation layer in a Harmony postfix on `GuiElementItemSlotGridBase.RenderInteractiveElements` — that fires every frame and gets `deltaTime`. The animated layer is a GL quad drawn on top of the baked bar using `capi.Render.Render2DTexturePremultipliedAlpha`, with an x-offset that advances with accumulated time. Not hard, but it's a new pattern if you haven't done per-frame slot overlays before.
-
-**SharpnessGhostPulse** (the fresh-tool hint): a faint bar that slowly breathes in and out in the unsharp space on a newly-crafted tool. Same `RenderInteractiveElements` approach — alpha driven by `sin(accumulatedTime / period * π)`, sized to the unsharpened portion of the bar. Clears once durability drops below pristine (tool has been used).
-
-If you want to ship something simpler first: both can be replaced with a static treatment (a solid keen bar, a static faint ghost) that lives entirely in `ComposeSlotOverlays` with no per-frame code. The LibGUI versions can live in the compat layer unchanged.
+- `ItemSlotOverlay.Build` — if LibGUI restructures this method, the patch breaks. Mod logs `[libguitoolsmithsharpness] No methods were patched` on startup if it can't find it.
+- Your config fields (`UseGradientForSharpnessInstead`, `ShowAllSharpnessBarSections`, `GradientSelection`) — read by reflection; silently falls back to flat-band mode if they move or rename.
+- Your attribute keys (`toolSharpnessCurrent`, `toolSharpnessMax`, `tinkeredTool*Durability`) — hardcoded strings; a rename needs a patch from me.
 
 ---
 
-## A note on the code style
+## The animations — optional, skip them if you want
 
-You'll notice the `Toolsmith/` shim layer is documented pretty heavily — all those XML docs exist so the *why* of each decision is obvious before you delete the file. The `Compat/` layer is lighter. The goal was to make the fold-in seam self-evident at a glance rather than requiring a lot of reading. If something isn't clear, ask.
+Two of the bars animate. The fold-in can ship without them and add them later.
+
+**SharpnessKeenSweep** — the fully-sharp bar has a highlight that slowly glides left to right. The intent is "this edge is keen, move on," so it's deliberately calm and slow rather than flashy. In LibGUI it's a `StatefulWidget` with an `AnimationController` — I'm reasonably confident I understand how that works. On your vanilla Cairo path it's different: `ComposeSlotOverlays` bakes to a texture once, so you'd do the animation in a postfix on `GuiElementItemSlotGridBase.RenderInteractiveElements` (fires every frame, gets `deltaTime`), drawing a GL quad on top via `capi.Render.Render2DTexturePremultipliedAlpha` with an x-offset that advances with time.
+
+**SharpnessGhostPulse** — faint bar that slowly breathes in the unsharp space on a newly-crafted tool. Free first hone = worth a nudge, not an alarm. Same `RenderInteractiveElements` approach, alpha driven by sin. Clears once the tool's been used.
+
+Both can be replaced with static treatments (solid keen bar, static ghost) that live entirely in `ComposeSlotOverlays` with no per-frame code, if you'd rather start simple.
 
 ---
 
-*This is CC0 — do whatever you want with it.*
+## On the code
+
+The `Toolsmith/` shim layer has heavy comments explaining why each decision was made. That's partly so the fold-in seam is obvious, and partly because I wasn't always 100% sure why I made some of them. The `Compat/` layer is lighter — that's the part I'm more confident about.
+
+---
+
+*CC0 — no strings.*
 
 *You mentioned the Toolsmith Discord thread — I'll find you there.*
