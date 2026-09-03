@@ -1,0 +1,20 @@
+# Project Subfolders to Exclude
+build/
+Releases/
+screenshots/
+playtest-history/
+reference/
+
+# Binaries & Media Assets
+*.png
+*.ogg
+*.wav
+*.blend
+*.gltf
+*.dll
+*.exe
+*.zip
+
+# Compiler Outputs
+bin/
+obj/
