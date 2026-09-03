@@ -14,10 +14,12 @@ public static class SharpnessReader
     public const string CurrentKey = "toolSharpnessCurrent";
     public const string MaxKey = "toolSharpnessMax";
 
-    // Toolsmith writes sharpness lazily — no attributes until first hover. Detect that by checking
-    // behaviour class names (no Toolsmith.dll ref needed). Report 0.66 as the pre-hover default
-    // (non-metal fresh ratio; self-corrects once real attributes exist). Bindings/handles excluded.
-    private const float FreshDefaultRatio = 0.66f;
+    // Toolsmith writes sharpness lazily — no attributes until first hover (or, per ResetSharpness,
+    // ever, for a creative-spawned stack). Detect that by checking behaviour class names (no
+    // Toolsmith.dll ref needed). Mirrors ResetSharpness's exact split: metal tools start at 85%,
+    // everything else (stone, bone, ...) at 66%. Self-corrects to the real value once written.
+    private const float MetalFreshRatio = 0.85f;
+    private const float NonMetalFreshRatio = 0.66f;
     private static readonly string[] SharpenableBehaviors =
     {
         "CollectibleBehaviorTinkeredTools",
@@ -29,7 +31,7 @@ public static class SharpnessReader
     /// <summary>
     /// Returns the 0..1 sharpness ratio. False if not a Toolsmith sharpenable or max is zero.
     /// <paramref name="uninitialized"/> is true when the attributes haven't been written yet
-    /// (freshly crafted, never hovered) — ratio is the 0.66 default in that case.
+    /// (freshly crafted, never hovered) — ratio is the metal/non-metal default in that case.
     /// </summary>
     public static bool TryGetRatio(ItemStack? stack, out float ratio, out bool uninitialized)
     {
@@ -38,6 +40,16 @@ public static class SharpnessReader
 
         var attributes = stack?.Attributes;
         if (attributes == null)
+        {
+            return false;
+        }
+
+        // Toolsmith's CollectibleBehaviorSmithedTools.OnCreatedByCrafting writes sharpness
+        // attributes to every single-part tool at craft time, blunt ones included - it never
+        // checks ToolBlunt there. Toolsmith itself then ignores that value for blunt tools
+        // (skips the tooltip line, freezes it in OnDamageItem). We must reject blunt tools
+        // before the attribute check below, or we'd surface that frozen, meaningless value.
+        if (IsBlunt(stack!.Collectible))
         {
             return false;
         }
@@ -56,9 +68,9 @@ public static class SharpnessReader
         }
 
         // No sharpness attribute yet - if this is a Toolsmith sharpenable, it's freshly crafted.
-        if (IsToolsmithSharpenable(stack!.Collectible))
+        if (IsSharpenableBehaviorPresent(stack.Collectible))
         {
-            ratio = FreshDefaultRatio;
+            ratio = ToolMaterialReader.IsCraftableMetal(stack.Collectible) ? MetalFreshRatio : NonMetalFreshRatio;
             uninitialized = true;
             return true;
         }
@@ -66,34 +78,46 @@ public static class SharpnessReader
         return false;
     }
 
-    // Matched by class name so we need no Toolsmith.dll ref. Blunt overrides all.
-    private static bool IsToolsmithSharpenable(CollectibleObject? collectible)
+    // Matched by class name so we need no Toolsmith.dll ref.
+    private static bool IsBlunt(CollectibleObject? collectible)
     {
         var behaviors = collectible?.CollectibleBehaviors;
-        if (behaviors == null || behaviors.Length == 0)
+        if (behaviors == null)
         {
             return false;
         }
 
-        bool sharpenable = false;
+        foreach (CollectibleBehavior behavior in behaviors)
+        {
+            if (behavior.GetType().Name == BluntBehavior)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsSharpenableBehaviorPresent(CollectibleObject? collectible)
+    {
+        var behaviors = collectible?.CollectibleBehaviors;
+        if (behaviors == null)
+        {
+            return false;
+        }
+
         foreach (CollectibleBehavior behavior in behaviors)
         {
             string name = behavior.GetType().Name;
-            if (name == BluntBehavior)
-            {
-                return false;
-            }
-
             for (int i = 0; i < SharpenableBehaviors.Length; i++)
             {
                 if (name == SharpenableBehaviors[i])
                 {
-                    sharpenable = true;
-                    break;
+                    return true;
                 }
             }
         }
 
-        return sharpenable;
+        return false;
     }
 }

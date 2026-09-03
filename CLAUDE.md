@@ -21,11 +21,20 @@ ports over unchanged.
 - `SharpnessReader.cs` — reads Toolsmith's `toolSharpnessCurrent` / `toolSharpnessMax` raw
   stack attributes. NO Toolsmith.dll reference; NEVER call Toolsmith's `Get*Sharpness()`
   extensions (they lazily initialise sharpness as a side effect - forbidden in a render path).
-  A freshly-crafted tool has NO sharpness attributes until first hovered (Toolsmith writes them
-  lazily), so we detect that uninitialised state by the collectible's Toolsmith behaviour class
-  names (`CollectibleBehaviorToolHead`/`SmithedTools`/`TinkeredTools`, excluding `ToolBlunt`) and
-  report the deterministic fresh ratio (0.66) so the bar shows BEFORE any hover — it self-corrects
-  to the exact stored value once the attributes exist.
+  Rejects `CollectibleBehaviorToolBlunt` items outright, before the attribute check — Toolsmith
+  writes sharpness attributes to blunt tools (hammer/tongs/wrench) at craft time too, then ignores
+  them itself, so surfacing that value would show a bogus bar. A freshly-crafted tool (or one
+  spawned via creative inventory) has NO sharpness attributes until first hovered (Toolsmith
+  writes them lazily), so we detect that uninitialised state by the collectible's Toolsmith
+  behaviour class names (`CollectibleBehaviorToolHead`/`SmithedTools`/`TinkeredTools`) and report
+  the deterministic fresh ratio so the bar shows BEFORE any hover — 0.85 for metal tools, 0.66 for
+  everything else (stone, bone, ...), mirroring Toolsmith's own `ResetSharpness` split via
+  `ToolMaterialReader.IsCraftableMetal`. Self-corrects to the exact stored value once attributes exist.
+- `ToolMaterialReader.cs` — mirrors Toolsmith's `IsCraftableMetal`/`GetMetalItem` (metal vs.
+  stone/bone material detection via the collectible's `metal`/`material` variant + an
+  `ingot-<material>` item lookup). Pure vanilla API (`RegistryObject.Variant`,
+  `IWorldAccessor.GetItem`) — no Toolsmith.dll reference. Needs the client `ICoreAPI`, cached as
+  `SharpnessBarsModSystem.Api`.
 - `DurabilityReader.cs` — computes the weakest-component durability ratio for tinkered tools,
   mirroring Toolsmith's `FindLowestCurrent/MaxDurabilityForBar` (min current & min max across
   head/handle/binding, taken independently). Reads raw `tinkeredTool*Durability` attributes and

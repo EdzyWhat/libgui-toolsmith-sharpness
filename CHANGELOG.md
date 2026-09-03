@@ -4,6 +4,17 @@ All notable changes to this mod are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1]
+
+### Fixed
+- Blunt tools (hammer, tongs, wrench) no longer show a bogus sharpness bar. Toolsmith writes
+  sharpness attributes to every single-part tool at craft time, blunt ones included, then ignores
+  that value itself — our reader now rejects `CollectibleBehaviorToolBlunt` items outright instead
+  of surfacing that frozen, meaningless value.
+- A freshly-crafted or creative-spawned metal tool now defaults its sharpness bar to 85% instead
+  of the flat 66% used for every material. Matches Toolsmith's own metal-vs-stone/bone split, so
+  the bar no longer jumps on first hover once the real (lazily-written) value loads in.
+
 ## [1.1.0]
 
 Maintenance release — no player-facing behaviour change.

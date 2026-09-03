@@ -17,12 +17,16 @@ public class SharpnessBarsModSystem : ModSystem
     /// <summary>Client logger, used to report whether the LibGUI patch attached (see StartClientSide).</summary>
     internal static ILogger? Logger;
 
+    /// <summary>Client API, needed by Toolsmith.MetalReader to look up ingot items by AssetLocation.</summary>
+    internal static ICoreClientAPI? Api;
+
     // Client-only: we patch the client GUI framework and never touch the server.
     public override bool ShouldLoad(EnumAppSide side) => side == EnumAppSide.Client;
 
     public override void StartClientSide(ICoreClientAPI api)
     {
         Logger = api.Logger;
+        Api = api;
 
         _harmony = new Harmony(HarmonyId);
         _harmony.PatchCategory("toolsmith.libgui.compat");
@@ -46,6 +50,7 @@ public class SharpnessBarsModSystem : ModSystem
     {
         _harmony?.UnpatchAll(HarmonyId);
         _harmony = null;
+        Api = null;
         base.Dispose();
     }
 }
